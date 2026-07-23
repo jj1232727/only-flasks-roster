@@ -22,6 +22,7 @@ export function Poll() {
   const [extraDays, setExtraDays] = useState<string[]>([])
   const [leadership, setLeadership] = useState(false)
   const [leadershipAreas, setLeadershipAreas] = useState<string[]>([])
+  const [leadershipOther, setLeadershipOther] = useState('')
   const [attendance, setAttendance] = useState(false)
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
@@ -35,7 +36,7 @@ export function Poll() {
     if (labels.some(label => !label) || new Set(labels).size !== 3) return setMessage('Choose three different class/spec combinations.')
     const notes = [
       `Extra day: ${extraDays.length ? extraDays.join(', ') : 'None'}`,
-      `Leadership: ${leadership ? (leadershipAreas.length ? leadershipAreas.join(', ') : 'Interested') : 'No'}`,
+      `Leadership: ${leadership ? ([...leadershipAreas, leadershipOther.trim() ? `Other — ${leadershipOther.trim()}` : ''].filter(Boolean).join(', ') || 'Interested') : 'No'}`,
       `95% attendance: ${attendance ? 'Yes' : 'No'}`,
       form.notes.trim() ? `Additional comments: ${form.notes.trim()}` : '',
     ].filter(Boolean).join('\n')
@@ -73,11 +74,12 @@ export function Poll() {
 
       <div className="mt-4 rounded-xl border border-stone-700 bg-stone-950/35 p-4">
         <p className="text-sm font-black text-stone-200"><span className="mr-2 text-amber-400">2.</span>Leadership interest</p>
-        <label className={`mt-3 flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${leadership ? 'border-amber-500 bg-amber-500/10' : 'border-stone-700 bg-stone-950/60'}`}><input type="checkbox" className="h-4 w-4 accent-amber-500" checked={leadership} onChange={event => { setLeadership(event.target.checked); if (!event.target.checked) setLeadershipAreas([]) }} /><span className="font-bold">I’m interested in helping</span></label>
+        <label className={`mt-3 flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${leadership ? 'border-amber-500 bg-amber-500/10' : 'border-stone-700 bg-stone-950/60'}`}><input type="checkbox" className="h-4 w-4 accent-amber-500" checked={leadership} onChange={event => { setLeadership(event.target.checked); if (!event.target.checked) { setLeadershipAreas([]); setLeadershipOther('') } }} /><span className="font-bold">I’m interested in helping</span></label>
       {leadership && <fieldset className="mt-3 rounded-lg border border-stone-800 bg-black/20 p-3">
         <legend className="px-1 text-sm font-bold text-stone-400">How can you help? <span className="font-normal">(select any)</span></legend>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {LEADERSHIP_OPTIONS.map(option => <label key={option} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm text-stone-300 hover:bg-white/5"><input type="checkbox" className="h-4 w-4 accent-amber-500" checked={leadershipAreas.includes(option)} onChange={() => toggle(option, leadershipAreas, setLeadershipAreas)} />{option}</label>)}
+          <label className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-stone-300"><span className="font-bold">Other</span><input maxLength={120} className="min-w-0 flex-1 rounded-md border border-stone-700 bg-stone-950 px-2 py-1.5 outline-none focus:border-amber-500" value={leadershipOther} onChange={event => setLeadershipOther(event.target.value)} placeholder="How else?" /></label>
         </div>
       </fieldset>}
       </div>
