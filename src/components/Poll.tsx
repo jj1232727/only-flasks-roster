@@ -15,6 +15,7 @@ function browserIdentity() {
 
 const EXTRA_DAY_OPTIONS = ['Early prog (first month)', 'Alt run', 'Sales']
 const LEADERSHIP_OPTIONS = ['Strategy prep', 'Calls & assignments', 'Log review', 'Recruitment', 'Roster & admin']
+const GUILD_GOALS = ['RWF', 'Hall of Fame', 'Top 500', 'CE minimum', 'Do our best']
 
 export function Poll() {
   const [form, setForm] = useState<Submission>(EMPTY_SUBMISSION)
@@ -24,6 +25,7 @@ export function Poll() {
   const [leadershipAreas, setLeadershipAreas] = useState<string[]>([])
   const [leadershipOther, setLeadershipOther] = useState('')
   const [attendance, setAttendance] = useState(false)
+  const [guildGoal, setGuildGoal] = useState('')
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -37,7 +39,8 @@ export function Poll() {
     const notes = [
       `Extra day: ${extraDays.length ? extraDays.join(', ') : 'None'}`,
       `Leadership: ${leadership ? ([...leadershipAreas, leadershipOther.trim() ? `Other — ${leadershipOther.trim()}` : ''].filter(Boolean).join(', ') || 'Interested') : 'No'}`,
-      `95% attendance: ${attendance ? 'Yes' : 'No'}`,
+      `90% attendance: ${attendance ? 'Yes' : 'No'}`,
+      `Guild goal: ${guildGoal || 'No preference'}`,
       form.notes.trim() ? `Additional comments: ${form.notes.trim()}` : '',
     ].filter(Boolean).join('\n')
 
@@ -86,10 +89,18 @@ export function Poll() {
 
       <div className="mt-4 rounded-xl border border-stone-700 bg-stone-950/35 p-4">
         <p className="text-sm font-black text-stone-200"><span className="mr-2 text-amber-400">3.</span>Attendance</p>
-        <label className={`mt-3 flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${attendance ? 'border-emerald-700 bg-emerald-950/20' : 'border-stone-700 bg-stone-950/60'}`}><input type="checkbox" className="h-4 w-4 accent-emerald-600" checked={attendance} onChange={event => setAttendance(event.target.checked)} /><span className="font-bold">I can maintain 95% attendance for the tier</span></label>
+        <label className={`mt-3 flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${attendance ? 'border-emerald-700 bg-emerald-950/20' : 'border-stone-700 bg-stone-950/60'}`}><input type="checkbox" className="h-4 w-4 accent-emerald-600" checked={attendance} onChange={event => setAttendance(event.target.checked)} /><span className="font-bold">I can maintain 90% attendance for the tier</span></label>
       </div>
 
-      <label className="mt-4 block rounded-xl border border-stone-700 bg-stone-950/35 p-4 text-sm font-black text-stone-200"><span className="mr-2 text-amber-400">4.</span>Additional comments<textarea maxLength={700} className="mt-3 min-h-20 w-full rounded-lg border border-stone-700 bg-stone-950 p-3 font-normal" value={form.notes} onChange={event => setForm({ ...form, notes: event.target.value })} placeholder="Anything else raid leaders should know…" /></label>
+      <fieldset className="mt-4 rounded-xl border border-stone-700 bg-stone-950/35 p-4">
+        <legend className="px-2 text-sm font-black text-stone-200"><span className="mr-2 text-amber-400">4.</span>Guild goal</legend>
+        <p className="mb-3 text-xs text-stone-500">Where do you expect us to aim?</p>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          {GUILD_GOALS.map(option => <label key={option} className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm transition ${guildGoal === option ? 'border-amber-500 bg-amber-500/10 text-amber-100' : 'border-stone-700 bg-stone-950/60 text-stone-300'}`}><input type="radio" name="guild-goal" className="h-4 w-4 accent-amber-500" checked={guildGoal === option} onChange={() => setGuildGoal(option)} /><span className="font-bold">{option}</span></label>)}
+        </div>
+      </fieldset>
+
+      <label className="mt-4 block rounded-xl border border-stone-700 bg-stone-950/35 p-4 text-sm font-black text-stone-200"><span className="mr-2 text-amber-400">5.</span>Additional comments<textarea maxLength={700} className="mt-3 min-h-20 w-full rounded-lg border border-stone-700 bg-stone-950 p-3 font-normal" value={form.notes} onChange={event => setForm({ ...form, notes: event.target.value })} placeholder="Anything else raid leaders should know…" /></label>
     </section>
 
     <button disabled={saving || !apiConfigured} className="mt-5 w-full rounded-lg bg-amber-600 px-5 py-3 font-black text-stone-950 disabled:opacity-50">{saving ? 'Saving…' : 'Save My Choices'}</button>

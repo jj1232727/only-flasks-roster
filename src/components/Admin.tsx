@@ -4,7 +4,7 @@ import { rosterApi, type AdminPlayer } from '../lib/api'
 import { CLASS_COLORS, choiceLabel, getRole, type Role } from '../lib/gameData'
 import { Breakdown, type BreakdownRow } from './Breakdown'
 
-type SearchField = 'player' | 'choices' | 'optional' | 'leadership' | 'attendance' | 'status' | 'notes'
+type SearchField = 'player' | 'choices' | 'optional' | 'leadership' | 'attendance' | 'goal' | 'status' | 'notes'
 
 export function Admin() {
   const [secret, setSecret] = useState('')
@@ -38,6 +38,7 @@ export function Admin() {
     optional: ['Early prog (first month)', 'Alt run', 'Sales', 'None'],
     leadership: unique(expectationValues.flatMap(response => response.leadership?.split(',').map(value => value.trim()) ?? [])),
     attendance: ['Yes', 'No'],
+    goal: ['RWF', 'Hall of Fame', 'Top 500', 'CE minimum', 'Do our best', 'No preference'],
     status: ['Roster', 'Fill'],
   }
   const visible = players.filter(player => {
@@ -49,7 +50,8 @@ export function Admin() {
       choices: [player.choice_1, player.choice_2, player.choice_3].map(choice => `${choice.class_name} ${choice.spec_name} ${getRole(choice)}`).join(' '),
       optional: expectations.extraDay ?? '',
       leadership: expectations.leadership ?? '',
-      attendance: expectations.attendance === 'Yes' ? 'yes 95% attendance' : expectations.attendance === 'No' ? 'no 95% attendance' : '',
+      attendance: expectations.attendance === 'Yes' ? 'yes 90% attendance' : expectations.attendance === 'No' ? 'no 90% attendance' : '',
+      goal: expectations.guildGoal ?? '',
       status: `${player.status} ${player.assigned_rank ? `choice ${player.assigned_rank}` : ''}`,
       notes: `${expectations.comments ?? player.notes} ${player.officer_notes}`,
     }
@@ -63,7 +65,7 @@ export function Admin() {
     <ExpectationsOverview players={players} />
   </div>
     <Breakdown rowsOverride={assignedRows} mode="assigned" />
-    <div className="panel gold-border rounded-2xl p-4 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-xl font-black">Player roster sheet</h3><p className="text-sm text-stone-500">One player per row with every decision field visible.</p></div><div className="flex overflow-hidden rounded-lg border border-stone-700 bg-stone-950"><select aria-label="Filter field" className="border-r border-stone-700 bg-stone-900 px-3 py-2 text-sm font-bold outline-none" value={searchField} onChange={event => { setSearchField(event.target.value as SearchField); setSearch('') }}><option value="player">Player</option><option value="choices">Choices</option><option value="optional">Optional day</option><option value="leadership">Leadership</option><option value="attendance">Attendance</option><option value="status">Status</option><option value="notes">Notes</option></select>{searchOptions[searchField] ? <select aria-label={`Filter by ${searchField}`} className="min-w-48 bg-stone-950 px-3 py-2 text-sm outline-none" value={search} onChange={event => setSearch(event.target.value)}><option value="">All</option>{searchOptions[searchField]!.map(option => <option key={option} value={option}>{option}</option>)}</select> : <label className="flex items-center gap-2 px-3"><Search size={15} /><input className="w-44 bg-transparent py-2 outline-none" value={search} onChange={event => setSearch(event.target.value)} placeholder={`Search ${searchField}`} /></label>}</div></div>{message && <p className="mt-3 text-amber-200">{message}</p>}
+    <div className="panel gold-border rounded-2xl p-4 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-xl font-black">Player roster sheet</h3><p className="text-sm text-stone-500">One player per row with every decision field visible.</p></div><div className="flex overflow-hidden rounded-lg border border-stone-700 bg-stone-950"><select aria-label="Filter field" className="border-r border-stone-700 bg-stone-900 px-3 py-2 text-sm font-bold outline-none" value={searchField} onChange={event => { setSearchField(event.target.value as SearchField); setSearch('') }}><option value="player">Player</option><option value="choices">Choices</option><option value="optional">Optional day</option><option value="leadership">Leadership</option><option value="attendance">Attendance</option><option value="goal">Guild goal</option><option value="status">Status</option><option value="notes">Notes</option></select>{searchOptions[searchField] ? <select aria-label={`Filter by ${searchField}`} className="min-w-48 bg-stone-950 px-3 py-2 text-sm outline-none" value={search} onChange={event => setSearch(event.target.value)}><option value="">All</option>{searchOptions[searchField]!.map(option => <option key={option} value={option}>{option}</option>)}</select> : <label className="flex items-center gap-2 px-3"><Search size={15} /><input className="w-44 bg-transparent py-2 outline-none" value={search} onChange={event => setSearch(event.target.value)} placeholder={`Search ${searchField}`} /></label>}</div></div>{message && <p className="mt-3 text-amber-200">{message}</p>}
       <div className="mt-5 overflow-x-auto rounded-xl border border-stone-700"><table className="w-full min-w-[1460px] table-fixed border-collapse text-left text-sm"><colgroup><col className="w-[170px]" /><col className="w-[280px]" /><col className="w-[310px]" /><col className="w-[120px]" /><col className="w-[120px]" /><col className="w-[370px]" /><col className="w-[70px]" /></colgroup><thead className="sticky top-0 bg-stone-950 text-xs uppercase tracking-wide text-stone-400"><tr><th className="p-3">Player</th><th className="p-3">Ranked choices</th><th className="p-3">Message to raid leaders</th><th className="p-3">Decision</th><th className="p-3">Assigned</th><th className="p-3">Private officer notes</th><th className="p-3"><span className="sr-only">Save</span></th></tr></thead><tbody>{visible.map(player => {
         const choices = [player.choice_1, player.choice_2, player.choice_3]
         return <tr key={player.id} className="border-t border-stone-800 align-top hover:bg-white/[.025]"><td className="p-3"><div className="break-words font-black">{player.character_name}</div><div className="break-words text-xs text-stone-500">{player.discord_name}</div></td><td className="p-3"><div className="space-y-1.5">{choices.map((choice, index) => <div key={index} className={`rounded border px-2 py-1.5 ${player.assigned_rank === index + 1 ? 'border-amber-700/70 bg-amber-950/20' : 'border-stone-800'}`}><div className="font-bold" style={{ color: CLASS_COLORS[choice.class_name] }}>{index + 1}. {choiceLabel(choice)}</div><div className="text-xs text-stone-500">{getRole(choice)}</div></div>)}</div></td><td className="p-3"><div className="min-h-24 rounded-lg border border-stone-800 bg-stone-950/50 p-3"><RaidLeaderMessage notes={player.notes} /></div></td><td className="p-3"><select aria-label={`Decision for ${player.character_name}`} className="w-full rounded border border-stone-700 bg-stone-950 p-2" value={player.status} onChange={event => update(player.id, { status: event.target.value as AdminPlayer['status'] })}><option value="roster">Roster</option><option value="fill">Fill</option></select></td><td className="p-3"><select aria-label={`Assigned choice for ${player.character_name}`} className="w-full rounded border border-stone-700 bg-stone-950 p-2" value={player.assigned_rank ?? 1} onChange={event => update(player.id, { assigned_rank: Number(event.target.value) })}><option value="1">1st</option><option value="2">2nd</option><option value="3">3rd</option></select></td><td className="p-3"><textarea aria-label={`Officer notes for ${player.character_name}`} className="min-h-28 w-full resize-y rounded border border-stone-700 bg-stone-950 p-3 leading-relaxed" value={player.officer_notes} onChange={event => update(player.id, { officer_notes: event.target.value })} placeholder="Evaluation, attendance, follow-up…" /></td><td className="p-3"><button title={`Save ${player.character_name}`} onClick={() => save(player)} className="rounded-lg bg-emerald-800 p-2 text-emerald-50"><Check size={16} /></button></td></tr>
@@ -79,13 +81,15 @@ function parseExpectations(notes: string) {
   const commentsLabel = 'Additional comments:'
   const extraDay = valueFor('Extra day')
   const leadership = valueFor('Leadership')
-  const attendance = valueFor('95% attendance')
+  const attendance = valueFor('90% attendance') ?? valueFor('95% attendance')
+  const guildGoal = valueFor('Guild goal')
   return {
     extraDay,
     leadership,
     attendance,
+    guildGoal,
     comments: notes.includes(commentsLabel) ? notes.slice(notes.indexOf(commentsLabel) + commentsLabel.length).trim() : undefined,
-    structured: extraDay !== undefined || leadership !== undefined || attendance !== undefined,
+    structured: extraDay !== undefined || leadership !== undefined || attendance !== undefined || guildGoal !== undefined,
   }
 }
 
@@ -101,16 +105,24 @@ function ExpectationsOverview({ players }: { players: AdminPlayer[] }) {
   })
   const leadershipTotal = responses.filter(response => response.leadership && response.leadership !== 'No').length
   const attendanceTotal = responses.filter(response => response.attendance === 'Yes').length
+  const goalCounts = new Map<string, number>()
+  responses.forEach(response => {
+    if (response.guildGoal) goalCounts.set(response.guildGoal, (goalCounts.get(response.guildGoal) ?? 0) + 1)
+  })
 
   return <section className="mt-5 rounded-xl border border-stone-700 bg-black/20 p-4 sm:p-5">
     <div className="flex flex-wrap items-end justify-between gap-2"><div><p className="rune text-[10px] font-bold text-amber-300">Raid expectations</p><h3 className="mt-1 text-lg font-black">Response snapshot</h3></div><span className="text-xs text-stone-500">{responses.length} of {totalPlayers} answered{responses.length < totalPlayers ? ` · ${totalPlayers - responses.length} awaiting update` : ''}</span></div>
-    <div className="mt-4 grid gap-3 lg:grid-cols-3">
+    <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
       <AggregateGroup title="Optional day">
         {['Early prog (first month)', 'Alt run', 'Sales'].map(option => <AggregateRow key={option} label={option} value={countSelection('extraDay', option)} total={totalPlayers} />)}
       </AggregateGroup>
       <AggregateGroup title="Commitment">
-        <AggregateRow label="95% attendance" value={attendanceTotal} total={totalPlayers} accent />
+        <AggregateRow label="90% attendance" value={attendanceTotal} total={totalPlayers} accent />
         <AggregateRow label="Leadership interest" value={leadershipTotal} total={totalPlayers} />
+      </AggregateGroup>
+      <AggregateGroup title="Guild goal">
+        {[...goalCounts.entries()].sort((a, b) => b[1] - a[1]).map(([label, count]) => <AggregateRow key={label} label={label} value={count} total={totalPlayers} />)}
+        {!goalCounts.size && <div className="py-2 text-sm text-stone-600">No goals selected yet.</div>}
       </AggregateGroup>
       <AggregateGroup title="Leadership help">
         {[...leadershipCounts.entries()].sort((a, b) => b[1] - a[1]).map(([label, count]) => <AggregateRow key={label} label={label} value={count} total={totalPlayers} />)}
@@ -131,7 +143,7 @@ function AggregateRow({ label, value, total, accent = false }: { label: string; 
 
 function RaidLeaderMessage({ notes }: { notes: string }) {
   if (!notes) return <div className="text-stone-600">—</div>
-  const { extraDay, leadership, attendance, comments, structured } = parseExpectations(notes)
+  const { extraDay, leadership, attendance, guildGoal, comments, structured } = parseExpectations(notes)
 
   if (!structured) return <div className="whitespace-pre-wrap break-words leading-relaxed text-stone-300">{notes}</div>
 
@@ -142,7 +154,8 @@ function RaidLeaderMessage({ notes }: { notes: string }) {
   return <div className="space-y-3">
     <div><div className="text-[10px] font-black uppercase tracking-wider text-stone-500">Optional day</div>{chips(extraDay)}</div>
     <div><div className="text-[10px] font-black uppercase tracking-wider text-stone-500">Leadership</div>{chips(leadership)}</div>
-    <div className="flex items-center justify-between gap-3"><div className="text-[10px] font-black uppercase tracking-wider text-stone-500">95% attendance</div><span className={`rounded-full px-2 py-0.5 text-xs font-black ${attendance === 'Yes' ? 'bg-emerald-950 text-emerald-300' : 'bg-red-950 text-red-300'}`}>{attendance || 'No'}</span></div>
+    <div className="flex items-center justify-between gap-3"><div className="text-[10px] font-black uppercase tracking-wider text-stone-500">90% attendance</div><span className={`rounded-full px-2 py-0.5 text-xs font-black ${attendance === 'Yes' ? 'bg-emerald-950 text-emerald-300' : 'bg-red-950 text-red-300'}`}>{attendance || 'No'}</span></div>
+    {guildGoal && <div className="flex items-center justify-between gap-3"><div className="text-[10px] font-black uppercase tracking-wider text-stone-500">Guild goal</div><span className="rounded-full bg-amber-950 px-2 py-0.5 text-xs font-black text-amber-200">{guildGoal}</span></div>}
     {comments && <div className="border-t border-stone-800 pt-2"><div className="text-[10px] font-black uppercase tracking-wider text-stone-500">Comments</div><div className="mt-1 whitespace-pre-wrap break-words text-xs leading-relaxed text-stone-300">{comments}</div></div>}
   </div>
 }
