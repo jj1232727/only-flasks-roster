@@ -92,6 +92,7 @@ function parseExpectations(notes: string) {
 function ExpectationsOverview({ players }: { players: AdminPlayer[] }) {
   const responses = players.map(player => parseExpectations(player.notes)).filter(response => response.structured)
   if (!responses.length) return null
+  const totalPlayers = players.length
   const countSelection = (field: 'extraDay' | 'leadership', option: string) => responses.filter(response => response[field]?.split(',').map(item => item.trim()).includes(option)).length
   const leadershipCounts = new Map<string, number>()
   responses.forEach(response => {
@@ -102,17 +103,17 @@ function ExpectationsOverview({ players }: { players: AdminPlayer[] }) {
   const attendanceTotal = responses.filter(response => response.attendance === 'Yes').length
 
   return <section className="mt-5 rounded-xl border border-stone-700 bg-black/20 p-4 sm:p-5">
-    <div className="flex flex-wrap items-end justify-between gap-2"><div><p className="rune text-[10px] font-bold text-amber-300">Raid expectations</p><h3 className="mt-1 text-lg font-black">Response snapshot</h3></div><span className="text-xs text-stone-500">{responses.length} responses</span></div>
+    <div className="flex flex-wrap items-end justify-between gap-2"><div><p className="rune text-[10px] font-bold text-amber-300">Raid expectations</p><h3 className="mt-1 text-lg font-black">Response snapshot</h3></div><span className="text-xs text-stone-500">{responses.length} of {totalPlayers} answered{responses.length < totalPlayers ? ` · ${totalPlayers - responses.length} awaiting update` : ''}</span></div>
     <div className="mt-4 grid gap-3 lg:grid-cols-3">
       <AggregateGroup title="Optional day">
-        {['Early prog (first month)', 'Alt run', 'Sales'].map(option => <AggregateRow key={option} label={option} value={countSelection('extraDay', option)} total={responses.length} />)}
+        {['Early prog (first month)', 'Alt run', 'Sales'].map(option => <AggregateRow key={option} label={option} value={countSelection('extraDay', option)} total={totalPlayers} />)}
       </AggregateGroup>
       <AggregateGroup title="Commitment">
-        <AggregateRow label="95% attendance" value={attendanceTotal} total={responses.length} accent />
-        <AggregateRow label="Leadership interest" value={leadershipTotal} total={responses.length} />
+        <AggregateRow label="95% attendance" value={attendanceTotal} total={totalPlayers} accent />
+        <AggregateRow label="Leadership interest" value={leadershipTotal} total={totalPlayers} />
       </AggregateGroup>
       <AggregateGroup title="Leadership help">
-        {[...leadershipCounts.entries()].sort((a, b) => b[1] - a[1]).map(([label, count]) => <AggregateRow key={label} label={label} value={count} total={responses.length} />)}
+        {[...leadershipCounts.entries()].sort((a, b) => b[1] - a[1]).map(([label, count]) => <AggregateRow key={label} label={label} value={count} total={totalPlayers} />)}
         {!leadershipCounts.size && <div className="py-2 text-sm text-stone-600">No areas selected yet.</div>}
       </AggregateGroup>
     </div>
