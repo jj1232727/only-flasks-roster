@@ -4,13 +4,13 @@ import { rosterApi, type AdminPlayer } from '../lib/api'
 import { CLASS_COLORS, choiceLabel, getRole, type Role } from '../lib/gameData'
 import { Breakdown, type BreakdownRow } from './Breakdown'
 
-type SearchField = 'all' | 'player' | 'choices' | 'optional' | 'leadership' | 'attendance' | 'status' | 'notes'
+type SearchField = 'player' | 'choices' | 'optional' | 'leadership' | 'attendance' | 'status' | 'notes'
 
 export function Admin() {
   const [secret, setSecret] = useState('')
   const [players, setPlayers] = useState<AdminPlayer[]>([])
   const [search, setSearch] = useState('')
-  const [searchField, setSearchField] = useState<SearchField>('all')
+  const [searchField, setSearchField] = useState<SearchField>('player')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [unlocked, setUnlocked] = useState(false)
@@ -31,6 +31,15 @@ export function Admin() {
 
   if (!unlocked) return <section className="panel gold-border rounded-2xl p-5 sm:p-8"><LockKeyhole className="text-amber-300" /><h2 className="mt-3 text-3xl font-black">Raid leader access</h2><p className="mt-2 text-stone-400">This secret is checked by Apps Script and is never stored in the GitHub repository.</p><div className="mt-5 flex max-w-lg gap-2"><input type="password" className="min-w-0 flex-1 rounded-lg border border-stone-700 bg-stone-950 p-3" value={secret} onChange={event => setSecret(event.target.value)} placeholder="Admin secret" /><button onClick={unlock} disabled={loading || !secret} className="rounded-lg bg-amber-600 px-5 font-bold text-stone-950 disabled:opacity-50">{loading ? 'Checking…' : 'Unlock'}</button></div>{message && <p className="mt-3 text-red-300">{message}</p>}</section>
 
+  const expectationValues = players.map(player => parseExpectations(player.notes))
+  const unique = (values: (string | undefined)[]) => [...new Set(values.filter((value): value is string => Boolean(value)))].sort()
+  const searchOptions: Partial<Record<SearchField, string[]>> = {
+    choices: unique(players.flatMap(player => [player.choice_1, player.choice_2, player.choice_3].map(choice => `${choice.class_name} ${choice.spec_name}`))),
+    optional: ['Early prog (first month)', 'Alt run', 'Sales', 'None'],
+    leadership: unique(expectationValues.flatMap(response => response.leadership?.split(',').map(value => value.trim()) ?? [])),
+    attendance: ['Yes', 'No'],
+    status: ['Roster', 'Fill'],
+  }
   const visible = players.filter(player => {
     const query = search.trim().toLowerCase()
     if (!query) return true
@@ -43,9 +52,7 @@ export function Admin() {
       attendance: expectations.attendance === 'Yes' ? 'yes 95% attendance' : expectations.attendance === 'No' ? 'no 95% attendance' : '',
       status: `${player.status} ${player.assigned_rank ? `choice ${player.assigned_rank}` : ''}`,
       notes: `${expectations.comments ?? player.notes} ${player.officer_notes}`,
-      all: '',
     }
-    fields.all = Object.entries(fields).filter(([key]) => key !== 'all').map(([, value]) => value).join(' ')
     return fields[searchField].toLowerCase().includes(query)
   })
   return <section className="space-y-5"><div className="panel gold-border rounded-2xl p-5 sm:p-8"><p className="rune text-xs font-bold text-red-300">Private planning</p><h2 className="mt-2 text-3xl font-black">Raid leader overview</h2><div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-6"><Summary label="Roster" value={players.filter(player => player.status === 'roster').length} /><Summary label="Fill" value={players.filter(player => player.status === 'fill').length} />{roleCounts.map(item => <Summary key={item.role} label={item.role} value={item.count} />)}</div>
@@ -56,7 +63,7 @@ export function Admin() {
     <ExpectationsOverview players={players} />
   </div>
     <Breakdown rowsOverride={assignedRows} mode="assigned" />
-    <div className="panel gold-border rounded-2xl p-4 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-xl font-black">Player roster sheet</h3><p className="text-sm text-stone-500">One player per row with every decision field visible.</p></div><div className="flex overflow-hidden rounded-lg border border-stone-700 bg-stone-950"><select aria-label="Search field" className="border-r border-stone-700 bg-stone-900 px-3 py-2 text-sm font-bold outline-none" value={searchField} onChange={event => setSearchField(event.target.value as SearchField)}><option value="all">Any field</option><option value="player">Player</option><option value="choices">Choices</option><option value="optional">Optional day</option><option value="leadership">Leadership</option><option value="attendance">Attendance</option><option value="status">Status</option><option value="notes">Notes</option></select><label className="flex items-center gap-2 px-3"><Search size={15} /><input className="w-44 bg-transparent py-2 outline-none" value={search} onChange={event => setSearch(event.target.value)} placeholder={`Search ${searchField === 'all' ? 'everything' : searchField}`} /></label></div></div>{message && <p className="mt-3 text-amber-200">{message}</p>}
+    <div className="panel gold-border rounded-2xl p-4 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-xl font-black">Player roster sheet</h3><p className="text-sm text-stone-500">One player per row with every decision field visible.</p></div><div className="flex overflow-hidden rounded-lg border border-stone-700 bg-stone-950"><select aria-label="Filter field" className="border-r border-stone-700 bg-stone-900 px-3 py-2 text-sm font-bold outline-none" value={searchField} onChange={event => { setSearchField(event.target.value as SearchField); setSearch('') }}><option value="player">Player</option><option value="choices">Choices</option><option value="optional">Optional day</option><option value="leadership">Leadership</option><option value="attendance">Attendance</option><option value="status">Status</option><option value="notes">Notes</option></select>{searchOptions[searchField] ? <select aria-label={`Filter by ${searchField}`} className="min-w-48 bg-stone-950 px-3 py-2 text-sm outline-none" value={search} onChange={event => setSearch(event.target.value)}><option value="">All</option>{searchOptions[searchField]!.map(option => <option key={option} value={option}>{option}</option>)}</select> : <label className="flex items-center gap-2 px-3"><Search size={15} /><input className="w-44 bg-transparent py-2 outline-none" value={search} onChange={event => setSearch(event.target.value)} placeholder={`Search ${searchField}`} /></label>}</div></div>{message && <p className="mt-3 text-amber-200">{message}</p>}
       <div className="mt-5 overflow-x-auto rounded-xl border border-stone-700"><table className="w-full min-w-[1460px] table-fixed border-collapse text-left text-sm"><colgroup><col className="w-[170px]" /><col className="w-[280px]" /><col className="w-[310px]" /><col className="w-[120px]" /><col className="w-[120px]" /><col className="w-[370px]" /><col className="w-[70px]" /></colgroup><thead className="sticky top-0 bg-stone-950 text-xs uppercase tracking-wide text-stone-400"><tr><th className="p-3">Player</th><th className="p-3">Ranked choices</th><th className="p-3">Message to raid leaders</th><th className="p-3">Decision</th><th className="p-3">Assigned</th><th className="p-3">Private officer notes</th><th className="p-3"><span className="sr-only">Save</span></th></tr></thead><tbody>{visible.map(player => {
         const choices = [player.choice_1, player.choice_2, player.choice_3]
         return <tr key={player.id} className="border-t border-stone-800 align-top hover:bg-white/[.025]"><td className="p-3"><div className="break-words font-black">{player.character_name}</div><div className="break-words text-xs text-stone-500">{player.discord_name}</div></td><td className="p-3"><div className="space-y-1.5">{choices.map((choice, index) => <div key={index} className={`rounded border px-2 py-1.5 ${player.assigned_rank === index + 1 ? 'border-amber-700/70 bg-amber-950/20' : 'border-stone-800'}`}><div className="font-bold" style={{ color: CLASS_COLORS[choice.class_name] }}>{index + 1}. {choiceLabel(choice)}</div><div className="text-xs text-stone-500">{getRole(choice)}</div></div>)}</div></td><td className="p-3"><div className="min-h-24 rounded-lg border border-stone-800 bg-stone-950/50 p-3"><RaidLeaderMessage notes={player.notes} /></div></td><td className="p-3"><select aria-label={`Decision for ${player.character_name}`} className="w-full rounded border border-stone-700 bg-stone-950 p-2" value={player.status} onChange={event => update(player.id, { status: event.target.value as AdminPlayer['status'] })}><option value="roster">Roster</option><option value="fill">Fill</option></select></td><td className="p-3"><select aria-label={`Assigned choice for ${player.character_name}`} className="w-full rounded border border-stone-700 bg-stone-950 p-2" value={player.assigned_rank ?? 1} onChange={event => update(player.id, { assigned_rank: Number(event.target.value) })}><option value="1">1st</option><option value="2">2nd</option><option value="3">3rd</option></select></td><td className="p-3"><textarea aria-label={`Officer notes for ${player.character_name}`} className="min-h-28 w-full resize-y rounded border border-stone-700 bg-stone-950 p-3 leading-relaxed" value={player.officer_notes} onChange={event => update(player.id, { officer_notes: event.target.value })} placeholder="Evaluation, attendance, follow-up…" /></td><td className="p-3"><button title={`Save ${player.character_name}`} onClick={() => save(player)} className="rounded-lg bg-emerald-800 p-2 text-emerald-50"><Check size={16} /></button></td></tr>
