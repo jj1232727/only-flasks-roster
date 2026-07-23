@@ -94,7 +94,7 @@ export function Poll() {
 
       <fieldset className="mt-4 rounded-xl border border-stone-700 bg-stone-950/35 p-4">
         <legend className="px-2 text-sm font-black text-stone-200"><span className="mr-2 text-amber-400">4.</span>Guild goal</legend>
-        <p className="mb-3 text-xs text-stone-500">Where do you expect us to aim?</p>
+        <p className="mb-3 text-xs text-stone-500">What level should we aim for?</p>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
           {GUILD_GOALS.map(option => <label key={option} className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm transition ${guildGoal === option ? 'border-amber-500 bg-amber-500/10 text-amber-100' : 'border-stone-700 bg-stone-950/60 text-stone-300'}`}><input type="radio" name="guild-goal" className="h-4 w-4 accent-amber-500" checked={guildGoal === option} onChange={() => setGuildGoal(option)} /><span className="font-bold">{option}</span></label>)}
         </div>
