@@ -31,7 +31,5 @@ button, select, input, textarea { font: inherit; }
 .logo-medallion-art {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  transform: scale(1.72);
-  transform-origin: 50% 58%;
+  object-fit: contain;
 }
