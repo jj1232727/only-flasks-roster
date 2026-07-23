@@ -12,7 +12,7 @@ export default function App() {
   return <main className={`mx-auto px-4 py-6 sm:px-6 ${officerMode ? 'max-w-[1680px]' : 'max-w-7xl'}`}>
     <header className="mb-7 flex items-center justify-center gap-4 sm:gap-6">
       <div className="logo-medallion">
-        <img src="/only-flasks-logo.png" alt="Only Flasks" className="h-full w-full object-cover" />
+        <img src="/only-flasks-logo.png" alt="" className="logo-medallion-art" />
       </div>
       <div className="text-left">
         <p className="rune text-[10px] font-bold text-amber-300 sm:text-xs">Only Flasks</p>
