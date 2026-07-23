@@ -15,7 +15,7 @@ function browserIdentity() {
 
 const EXTRA_DAY_OPTIONS = ['Early prog (first month)', 'Alt run', 'Sales']
 const LEADERSHIP_OPTIONS = ['Strategy prep', 'Calls & assignments', 'Log review', 'Recruitment', 'Roster & admin']
-const GUILD_GOALS = ['RWF', 'Hall of Fame', 'Top 500', 'CE minimum', 'Do our best']
+const GUILD_GOALS = ['RWF', 'Hall of Fame', 'Top 500 (US)', 'CE minimum', 'Do our best']
 
 export function Poll() {
   const [form, setForm] = useState<Submission>(EMPTY_SUBMISSION)

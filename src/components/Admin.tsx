@@ -38,7 +38,7 @@ export function Admin() {
     optional: ['Early prog (first month)', 'Alt run', 'Sales', 'None'],
     leadership: unique(expectationValues.flatMap(response => response.leadership?.split(',').map(value => value.trim()) ?? [])),
     attendance: ['Yes', 'No'],
-    goal: ['RWF', 'Hall of Fame', 'Top 500', 'CE minimum', 'Do our best', 'No preference'],
+    goal: ['RWF', 'Hall of Fame', 'Top 500 (US)', 'CE minimum', 'Do our best', 'No preference'],
     status: ['Roster', 'Fill'],
   }
   const visible = players.filter(player => {
