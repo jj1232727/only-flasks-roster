@@ -34,6 +34,7 @@ export function Admin() {
       const rolePlayers = mains.filter(player => player.role === role).sort((a, b) => a.character_name.localeCompare(b.character_name))
       return <section key={role} className="overflow-hidden rounded-xl border border-stone-700 bg-black/20"><header className="flex items-center justify-between border-b border-stone-800 px-4 py-3"><h3 className="font-black">{role}{role === 'Melee' || role === 'Ranged' ? ' DPS' : 's'}</h3><span className="rounded-full bg-stone-800 px-2 py-0.5 text-xs font-black">{rolePlayers.length}</span></header><div className="divide-y divide-stone-800">{rolePlayers.map(player => <div key={player.id} className="px-4 py-3"><div className="break-words font-bold leading-snug">{player.character_name}</div><div className="mt-1 break-words text-xs font-bold leading-snug" style={{ color: CLASS_COLORS[player.choice.class_name] }}>{player.choice.spec_name} {player.choice.class_name}</div></div>)}{!rolePlayers.length && <div className="px-4 py-5 text-center text-sm text-red-300">No assigned players</div>}</div></section>
     })}</div>
+    <ExpectationsOverview players={players} />
   </div>
     <Breakdown rowsOverride={assignedRows} mode="assigned" />
     <div className="panel gold-border rounded-2xl p-4 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-xl font-black">Player roster sheet</h3><p className="text-sm text-stone-500">One player per row with every decision field visible.</p></div><label className="flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950 px-3"><Search size={15} /><input className="w-40 bg-transparent py-2 outline-none" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search" /></label></div>{message && <p className="mt-3 text-amber-200">{message}</p>}
@@ -46,16 +47,64 @@ export function Admin() {
 
 function Summary({ label, value }: { label: string; value: number }) { return <div className="rounded-xl border border-stone-700 bg-black/20 p-4"><div className="text-2xl font-black">{value}</div><div className="text-xs uppercase text-stone-500">{label}</div></div> }
 
-function RaidLeaderMessage({ notes }: { notes: string }) {
-  if (!notes) return <div className="text-stone-600">—</div>
+function parseExpectations(notes: string) {
   const lines = notes.split('\n').map(line => line.trim()).filter(Boolean)
   const valueFor = (label: string) => lines.find(line => line.startsWith(`${label}:`))?.slice(label.length + 1).trim()
+  const commentsLabel = 'Additional comments:'
   const extraDay = valueFor('Extra day')
   const leadership = valueFor('Leadership')
   const attendance = valueFor('95% attendance')
-  const commentsLabel = 'Additional comments:'
-  const comments = notes.includes(commentsLabel) ? notes.slice(notes.indexOf(commentsLabel) + commentsLabel.length).trim() : undefined
-  const structured = extraDay !== undefined || leadership !== undefined || attendance !== undefined
+  return {
+    extraDay,
+    leadership,
+    attendance,
+    comments: notes.includes(commentsLabel) ? notes.slice(notes.indexOf(commentsLabel) + commentsLabel.length).trim() : undefined,
+    structured: extraDay !== undefined || leadership !== undefined || attendance !== undefined,
+  }
+}
+
+function ExpectationsOverview({ players }: { players: AdminPlayer[] }) {
+  const responses = players.map(player => parseExpectations(player.notes)).filter(response => response.structured)
+  if (!responses.length) return null
+  const countSelection = (field: 'extraDay' | 'leadership', option: string) => responses.filter(response => response[field]?.split(',').map(item => item.trim()).includes(option)).length
+  const leadershipCounts = new Map<string, number>()
+  responses.forEach(response => {
+    if (!response.leadership || response.leadership === 'No' || response.leadership === 'Interested') return
+    response.leadership.split(',').map(item => item.trim()).forEach(item => leadershipCounts.set(item, (leadershipCounts.get(item) ?? 0) + 1))
+  })
+  const leadershipTotal = responses.filter(response => response.leadership && response.leadership !== 'No').length
+  const attendanceTotal = responses.filter(response => response.attendance === 'Yes').length
+
+  return <section className="mt-5 rounded-xl border border-stone-700 bg-black/20 p-4 sm:p-5">
+    <div className="flex flex-wrap items-end justify-between gap-2"><div><p className="rune text-[10px] font-bold text-amber-300">Raid expectations</p><h3 className="mt-1 text-lg font-black">Response snapshot</h3></div><span className="text-xs text-stone-500">{responses.length} responses</span></div>
+    <div className="mt-4 grid gap-3 lg:grid-cols-3">
+      <AggregateGroup title="Optional day">
+        {['Early prog (first month)', 'Alt run', 'Sales'].map(option => <AggregateRow key={option} label={option} value={countSelection('extraDay', option)} total={responses.length} />)}
+      </AggregateGroup>
+      <AggregateGroup title="Commitment">
+        <AggregateRow label="95% attendance" value={attendanceTotal} total={responses.length} accent />
+        <AggregateRow label="Leadership interest" value={leadershipTotal} total={responses.length} />
+      </AggregateGroup>
+      <AggregateGroup title="Leadership help">
+        {[...leadershipCounts.entries()].sort((a, b) => b[1] - a[1]).map(([label, count]) => <AggregateRow key={label} label={label} value={count} total={responses.length} />)}
+        {!leadershipCounts.size && <div className="py-2 text-sm text-stone-600">No areas selected yet.</div>}
+      </AggregateGroup>
+    </div>
+  </section>
+}
+
+function AggregateGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return <div className="rounded-lg border border-stone-800 bg-stone-950/40 p-3"><h4 className="mb-2 text-xs font-black uppercase tracking-wider text-stone-500">{title}</h4><div className="space-y-2">{children}</div></div>
+}
+
+function AggregateRow({ label, value, total, accent = false }: { label: string; value: number; total: number; accent?: boolean }) {
+  const percent = total ? Math.round(value / total * 100) : 0
+  return <div><div className="flex items-center justify-between gap-3 text-sm"><span className="text-stone-300">{label}</span><span className={`font-black ${accent ? 'text-emerald-300' : 'text-amber-200'}`}>{value}<span className="ml-1 text-xs font-normal text-stone-600">/ {total}</span></span></div><div className="mt-1 h-1.5 overflow-hidden rounded-full bg-stone-800"><div className={`h-full rounded-full ${accent ? 'bg-emerald-600' : 'bg-amber-600'}`} style={{ width: `${percent}%` }} /></div></div>
+}
+
+function RaidLeaderMessage({ notes }: { notes: string }) {
+  if (!notes) return <div className="text-stone-600">—</div>
+  const { extraDay, leadership, attendance, comments, structured } = parseExpectations(notes)
 
   if (!structured) return <div className="whitespace-pre-wrap break-words leading-relaxed text-stone-300">{notes}</div>
 
