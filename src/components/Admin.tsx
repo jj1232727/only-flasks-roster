@@ -36,7 +36,7 @@ export function Admin() {
   const unique = (values: (string | undefined)[]) => [...new Set(values.filter((value): value is string => Boolean(value)))].sort()
   const searchOptions: Partial<Record<SearchField, string[]>> = {
     choices: unique(players.flatMap(player => [player.choice_1, player.choice_2, player.choice_3].map(choice => `${choice.class_name} ${choice.spec_name}`))),
-    optional: ['Early prog (first month)', 'Alt run', 'Sales', 'None'],
+    optional: ['3-day early prog (first month)', 'Alt run', 'Sales', 'None'],
     leadership: unique(expectationValues.flatMap(response => response.leadership?.split(',').map(value => value.trim()) ?? [])),
     attendance: ['Yes', 'No'],
     goal: ['RWF', 'Hall of Fame', 'Top 500 (US)', 'CE minimum', 'Do our best', 'No preference'],
@@ -80,7 +80,7 @@ function parseExpectations(notes: string) {
   const lines = notes.split('\n').map(line => line.trim()).filter(Boolean)
   const valueFor = (label: string) => lines.find(line => line.startsWith(`${label}:`))?.slice(label.length + 1).trim()
   const commentsLabel = 'Additional comments:'
-  const extraDay = valueFor('Extra day')
+  const extraDay = valueFor('Extra day')?.replace('Early prog (first month)', '3-day early prog (first month)')
   const leadership = valueFor('Leadership')
   const attendance = valueFor('90% attendance') ?? valueFor('95% attendance')
   const guildGoal = valueFor('Guild goal')
@@ -115,7 +115,7 @@ function ExpectationsOverview({ players }: { players: AdminPlayer[] }) {
     <div className="flex flex-wrap items-end justify-between gap-2"><div><p className="rune text-[10px] font-bold text-amber-300">Raid expectations</p><h3 className="mt-1 text-lg font-black">Response snapshot</h3></div><span className="text-xs text-stone-500">{responses.length} of {totalPlayers} answered{responses.length < totalPlayers ? ` · ${totalPlayers - responses.length} awaiting update` : ''}</span></div>
     <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
       <AggregateGroup title="Optional day">
-        {['Early prog (first month)', 'Alt run', 'Sales'].map(option => <AggregateRow key={option} label={option} value={countSelection('extraDay', option)} total={totalPlayers} />)}
+        {['3-day early prog (first month)', 'Alt run', 'Sales'].map(option => <AggregateRow key={option} label={option} value={countSelection('extraDay', option)} total={totalPlayers} />)}
       </AggregateGroup>
       <AggregateGroup title="Commitment">
         <AggregateRow label="90% attendance" value={attendanceTotal} total={totalPlayers} accent />

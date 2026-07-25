@@ -13,7 +13,7 @@ function browserIdentity() {
   return token
 }
 
-const EXTRA_DAY_OPTIONS = ['Early prog (first month)', 'Alt run', 'Sales']
+const EXTRA_DAY_OPTIONS = ['3-day early prog (first month)', 'Alt run', 'Sales']
 const LEADERSHIP_OPTIONS = ['Strategy prep', 'Calls & assignments', 'Log review', 'Recruitment', 'Roster & admin']
 const GUILD_GOALS = ['RWF', 'Hall of Fame', 'Top 500 (US)', 'CE minimum', 'Do our best']
 
