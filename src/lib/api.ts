@@ -41,11 +41,20 @@ export const rosterApi = {
   }) => request<{ updated: boolean }>('submit', submission),
   breakdown: () => request<PublicRow[]>('breakdown'),
   adminRoster: (admin_secret: string) => request<AdminPlayer[]>('adminRoster', { admin_secret }),
-  saveAssignment: (admin_secret: string, player: AdminPlayer) => request<null>('saveAssignment', {
-    admin_secret,
-    id: player.id,
-    status: (player.status as string) === 'fill' || (player.status as string) === 'bench' ? 'fill' : 'roster',
-    assigned_rank: player.assigned_rank,
-    officer_notes: player.officer_notes,
-  }),
+  saveAssignment: async (admin_secret: string, player: AdminPlayer) => {
+    const isFill = (player.status as string) === 'fill' || (player.status as string) === 'bench'
+    const payload = {
+      admin_secret,
+      id: player.id,
+      status: isFill ? 'fill' : 'roster',
+      assigned_rank: player.assigned_rank,
+      officer_notes: player.officer_notes,
+    }
+    try {
+      return await request<null>('saveAssignment', payload)
+    } catch (error) {
+      if (!(error instanceof Error) || !error.message.toLowerCase().includes('invalid roster status')) throw error
+      return request<null>('saveAssignment', { ...payload, status: isFill ? 'bench' : 'main' })
+    }
+  },
 }

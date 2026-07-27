@@ -24,7 +24,7 @@ function setup() {
 }
 
 function doGet() {
-  return json_({ ok: true, data: { service: 'Only Flasks roster API' } });
+  return json_({ ok: true, data: { service: 'Only Flasks roster API', version: '2026-07-27-roster-fills' } });
 }
 
 function doPost(event) {
