@@ -44,7 +44,7 @@ export const rosterApi = {
   saveAssignment: (admin_secret: string, player: AdminPlayer) => request<null>('saveAssignment', {
     admin_secret,
     id: player.id,
-    status: player.status,
+    status: (player.status as string) === 'fill' || (player.status as string) === 'bench' ? 'fill' : 'roster',
     assigned_rank: player.assigned_rank,
     officer_notes: player.officer_notes,
   }),
