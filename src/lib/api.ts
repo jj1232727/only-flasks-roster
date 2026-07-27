@@ -24,7 +24,15 @@ export type AdminPlayer = Submission & {
 }
 
 export const rosterApi = {
-  submit: (submission: Submission & { discord_name: string; identity_token: string }) => request<{ updated: boolean }>('submit', submission),
+  submit: (submission: Submission & {
+    discord_name: string
+    identity_token: string
+    extra_days: string[]
+    leadership_areas: string[]
+    attendance_90: boolean
+    guild_goal: string
+    additional_comments: string
+  }) => request<{ updated: boolean }>('submit', submission),
   breakdown: () => request<PublicRow[]>('breakdown'),
   adminRoster: (admin_secret: string) => request<AdminPlayer[]>('adminRoster', { admin_secret }),
   saveAssignment: (admin_secret: string, player: AdminPlayer) => request<null>('saveAssignment', {

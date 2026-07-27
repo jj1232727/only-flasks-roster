@@ -47,7 +47,17 @@ export function Poll() {
     setSaving(true)
     setMessage('')
     try {
-      await rosterApi.submit({ ...form, notes, discord_name: discordName.trim(), identity_token: browserIdentity() })
+      await rosterApi.submit({
+        ...form,
+        notes,
+        discord_name: discordName.trim(),
+        identity_token: browserIdentity(),
+        extra_days: extraDays,
+        leadership_areas: leadership ? [...leadershipAreas, ...(leadershipOther.trim() ? [`Other — ${leadershipOther.trim()}`] : [])] : [],
+        attendance_90: attendance,
+        guild_goal: guildGoal || 'No preference',
+        additional_comments: form.notes.trim(),
+      })
       window.dispatchEvent(new Event('roster-submitted'))
       setMessage('Saved. You can update this response later from this browser.')
     } catch (error) {

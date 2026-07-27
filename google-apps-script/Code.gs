@@ -1,7 +1,8 @@
 const HEADERS = [
   'id', 'discord_name', 'discord_key', 'edit_hash', 'character_name',
   'choice_1', 'choice_2', 'choice_3', 'player_notes', 'status',
-  'assigned_rank', 'officer_notes', 'updated_at'
+  'assigned_rank', 'officer_notes', 'updated_at', 'extra_days',
+  'leadership_areas', 'attendance_90', 'guild_goal', 'additional_comments'
 ];
 
 /**
@@ -63,7 +64,12 @@ function submit_(payload) {
       existing ? existing.id : Utilities.getUuid(), discordName, discordKey, editHash, characterName,
       JSON.stringify(choices[0]), JSON.stringify(choices[1]), JSON.stringify(choices[2]),
       clean_(payload.notes, 1000), existing ? (existing.status === 'unassigned' ? 'roster' : existing.status) : 'roster',
-      existing ? (existing.assigned_rank || 1) : 1, existing ? existing.officer_notes : '', new Date().toISOString()
+      existing ? (existing.assigned_rank || 1) : 1, existing ? existing.officer_notes : '', new Date().toISOString(),
+      JSON.stringify(cleanList_(payload.extra_days, 3, 60)),
+      JSON.stringify(cleanList_(payload.leadership_areas, 8, 120)),
+      payload.attendance_90 === true ? 'Yes' : 'No',
+      clean_(payload.guild_goal, 40) || 'No preference',
+      clean_(payload.additional_comments, 700)
     ];
     if (existing) sheet.getRange(index + 2, 1, 1, HEADERS.length).setValues([record]);
     else sheet.appendRow(record);
@@ -127,7 +133,19 @@ function getSheet_() {
   let sheet = spreadsheet.getSheetByName('Roster');
   if (!sheet) sheet = spreadsheet.insertSheet('Roster');
   if (sheet.getLastRow() === 0) sheet.appendRow(HEADERS);
+  ensureHeaders_(sheet);
   return sheet;
+}
+
+function ensureHeaders_(sheet) {
+  const lastColumn = sheet.getLastColumn();
+  const current = lastColumn ? sheet.getRange(1, 1, 1, lastColumn).getValues()[0] : [];
+  HEADERS.forEach(header => {
+    if (!current.includes(header)) {
+      sheet.getRange(1, current.length + 1).setValue(header);
+      current.push(header);
+    }
+  });
 }
 
 function values_(sheet) {
@@ -151,6 +169,11 @@ function validateChoice_(choice) {
 
 function clean_(value, maxLength) {
   return String(value == null ? '' : value).trim().slice(0, maxLength);
+}
+
+function cleanList_(value, maxItems, maxLength) {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, maxItems).map(item => clean_(item, maxLength)).filter(Boolean);
 }
 
 function json_(value) {
