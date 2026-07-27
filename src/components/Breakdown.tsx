@@ -49,10 +49,15 @@ export function Breakdown({ rowsOverride, mode = 'public' }: { rowsOverride?: Ro
     const onSubmission = () => load()
     document.addEventListener('visibilitychange', onVisible)
     window.addEventListener('roster-submitted', onSubmission)
-    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('roster-submitted', onSubmission) }
+    window.addEventListener('roster-assignment-saved', onSubmission)
+    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('roster-submitted', onSubmission); window.removeEventListener('roster-assignment-saved', onSubmission) }
   }, [load, rowsOverride])
 
   const dataRows = rowsOverride ?? rows
+  const assignmentRows = dataRows.filter(row => row.assignment_status)
+  const assignmentCount = (status: 'roster' | 'fill', role?: Role) => assignmentRows
+    .filter(row => row.assignment_status === status && (!role || getRole({ class_name: row.class_name, spec_name: row.spec_name }) === role))
+    .reduce((sum, row) => sum + Number(row.choice_count), 0)
 
   const count = useCallback((className: string, specName: string, rank: number) =>
     Number(dataRows.find(row => row.class_name === className && row.spec_name === specName && row.rank === rank)?.choice_count ?? 0), [dataRows])
@@ -98,6 +103,10 @@ export function Breakdown({ rowsOverride, mode = 'public' }: { rowsOverride?: Ro
         })}
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-stone-500"><span>Click a role to filter{mode === 'public' ? ' · auto-refreshes every 15 seconds' : ''}</span>{mode === 'public' && <span>{updatedAt ? `Updated ${updatedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}` : 'Waiting for roster data'}</span>}</div>
+      {assignmentRows.length > 0 && <div className="mt-5 rounded-xl border border-stone-700 bg-stone-950/45 p-4">
+        <div className="flex flex-wrap items-end justify-between gap-2"><div><p className="text-xs font-black uppercase tracking-wider text-amber-300">Current raid plan</p><h3 className="mt-1 text-lg font-black">Roster spots vs fills</h3></div><div className="flex gap-2 text-xs font-black"><span className="rounded-full bg-emerald-950 px-2.5 py-1 text-emerald-300">{assignmentCount('roster')} roster</span><span className="rounded-full bg-sky-950 px-2.5 py-1 text-sky-300">{assignmentCount('fill')} fill</span></div></div>
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{ROLES.map(role => <div key={role} className="rounded-lg border border-stone-800 bg-black/20 p-3"><div className="text-xs font-bold uppercase tracking-wide text-stone-500">{role}</div><div className="mt-2 flex items-baseline gap-3"><span className="text-lg font-black text-emerald-300">{assignmentCount('roster', role)} <small className="text-[10px] font-normal text-stone-500">roster</small></span><span className="text-sm font-black text-sky-300">{assignmentCount('fill', role)} <small className="text-[10px] font-normal text-stone-500">fill</small></span></div></div>)}</div>
+      </div>}
     </div>
 
     <div className="panel gold-border rounded-2xl p-5 sm:p-8">

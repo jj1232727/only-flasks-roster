@@ -85,14 +85,26 @@ function breakdown_() {
   const cached = cache.get('breakdown');
   if (cached) return JSON.parse(cached);
   const counts = {};
-  values_(getSheet_()).forEach(row => [1, 2, 3].forEach(rank => {
-    const choice = JSON.parse(row['choice_' + rank]);
-    const key = choice.class_name + '|' + choice.spec_name + '|' + rank;
-    counts[key] = (counts[key] || 0) + 1;
-  }));
+  const assignments = {};
+  values_(getSheet_()).forEach(row => {
+    [1, 2, 3].forEach(rank => {
+      const choice = JSON.parse(row['choice_' + rank]);
+      const key = choice.class_name + '|' + choice.spec_name + '|' + rank;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    const status = row.status === 'fill' || row.status === 'bench' ? 'fill' : 'roster';
+    const assignedRank = [1, 2, 3].includes(Number(row.assigned_rank)) ? Number(row.assigned_rank) : 1;
+    const assigned = JSON.parse(row['choice_' + assignedRank]);
+    const assignmentKey = assigned.class_name + '|' + assigned.spec_name + '|' + status;
+    assignments[assignmentKey] = (assignments[assignmentKey] || 0) + 1;
+  });
   const result = Object.keys(counts).map(key => {
     const parts = key.split('|');
     return { class_name: parts[0], spec_name: parts[1], rank: Number(parts[2]), choice_count: counts[key] };
+  });
+  Object.keys(assignments).forEach(key => {
+    const parts = key.split('|');
+    result.push({ class_name: parts[0], spec_name: parts[1], rank: 0, choice_count: assignments[key], assignment_status: parts[2] });
   });
   cache.put('breakdown', JSON.stringify(result), 30);
   return result;
@@ -110,15 +122,20 @@ function adminRoster_() {
 
 function saveAssignment_(payload) {
   const allowed = ['unassigned', 'roster', 'fill'];
-  if (!allowed.includes(payload.status)) throw new Error('Invalid roster status.');
-  if (payload.assigned_rank !== null && ![1, 2, 3].includes(Number(payload.assigned_rank))) throw new Error('Invalid assigned choice.');
+  const id = clean_(payload.id, 100);
+  const status = clean_(payload.status, 20).toLowerCase();
+  const assignedRank = payload.assigned_rank === null || payload.assigned_rank === '' ? null : Number(payload.assigned_rank);
+  if (!id) throw new Error('A player id is required.');
+  if (!allowed.includes(status)) throw new Error('Roster status must be roster or fill.');
+  if (assignedRank !== null && ![1, 2, 3].includes(assignedRank)) throw new Error('Assigned choice must be 1, 2, or 3.');
   const sheet = getSheet_();
   const rows = values_(sheet);
-  const index = rows.findIndex(row => row.id === payload.id);
+  const index = rows.findIndex(row => String(row.id) === id);
   if (index < 0) throw new Error('Raider not found.');
-  sheet.getRange(index + 2, HEADERS.indexOf('status') + 1).setValue(payload.status);
-  sheet.getRange(index + 2, HEADERS.indexOf('assigned_rank') + 1).setValue(payload.assigned_rank === null ? '' : Number(payload.assigned_rank));
+  sheet.getRange(index + 2, HEADERS.indexOf('status') + 1).setValue(status);
+  sheet.getRange(index + 2, HEADERS.indexOf('assigned_rank') + 1).setValue(assignedRank === null ? '' : assignedRank);
   sheet.getRange(index + 2, HEADERS.indexOf('officer_notes') + 1).setValue(clean_(payload.officer_notes, 2000));
+  CacheService.getScriptCache().remove('breakdown');
 }
 
 function requireAdmin_(payload) {

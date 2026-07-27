@@ -17,16 +17,16 @@ export function Admin() {
   const unlock = async () => { setLoading(true); setMessage(''); try { const roster = await rosterApi.adminRoster(secret); setPlayers(roster.map(player => ({ ...player, status: player.status === 'unassigned' ? 'roster' : player.status, assigned_rank: player.assigned_rank ?? 1 }))); setUnlocked(true) } catch (error) { setMessage(error instanceof Error ? error.message : 'Access failed.') } setLoading(false) }
   const refresh = async () => { setLoading(true); setMessage(''); try { const roster = await rosterApi.adminRoster(secret); setPlayers(roster.map(player => ({ ...player, status: player.status === 'unassigned' ? 'roster' : player.status, assigned_rank: player.assigned_rank ?? 1 }))); setMessage(`Roster refreshed · ${roster.length} players`) } catch (error) { setMessage(error instanceof Error ? error.message : 'Refresh failed.') } setLoading(false) }
   const update = (id: string, patch: Partial<AdminPlayer>) => setPlayers(current => current.map(player => player.id === id ? { ...player, ...patch } : player))
-  const save = async (player: AdminPlayer) => { try { await rosterApi.saveAssignment(secret, player); setMessage(`Saved ${player.character_name}.`) } catch (error) { setMessage(error instanceof Error ? error.message : 'Save failed.') } }
+  const save = async (player: AdminPlayer) => { try { await rosterApi.saveAssignment(secret, player); window.dispatchEvent(new Event('roster-assignment-saved')); setMessage(`Saved ${player.character_name}.`) } catch (error) { setMessage(error instanceof Error ? error.message : 'Save failed.') } }
   const mains = useMemo(() => players.filter(player => player.status === 'roster' && player.assigned_rank).map(player => {
     const choice = player[`choice_${player.assigned_rank}` as 'choice_1']
     return { ...player, choice, role: getRole(choice) }
   }), [players])
   const roleCounts = (['Tank', 'Healer', 'Melee', 'Ranged'] as Role[]).map(role => ({ role, count: mains.filter(player => player.role === role).length }))
-  const assignedRows = Object.values(mains.reduce<Record<string, BreakdownRow>>((output, player) => {
+  const assignedRows = Object.values(players.filter(player => player.assigned_rank && (player.status === 'roster' || player.status === 'fill')).reduce<Record<string, BreakdownRow>>((output, player) => {
     const choice = player[`choice_${player.assigned_rank}` as 'choice_1']
-    const key = `${choice.class_name}|${choice.spec_name}`
-    output[key] = { class_name: choice.class_name, spec_name: choice.spec_name, rank: 1, choice_count: (output[key]?.choice_count ?? 0) + 1 }
+    const key = `${choice.class_name}|${choice.spec_name}|${player.status}`
+    output[key] = { class_name: choice.class_name, spec_name: choice.spec_name, rank: player.status === 'roster' ? 1 : 2, choice_count: (output[key]?.choice_count ?? 0) + 1, assignment_status: player.status as 'roster' | 'fill' }
     return output
   }, {}))
 

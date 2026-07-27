@@ -13,7 +13,13 @@ async function request<T>(action: string, payload: Record<string, unknown> = {})
   return result.data as T
 }
 
-export type PublicRow = { class_name: string; spec_name: string; rank: number; choice_count: number }
+export type PublicRow = {
+  class_name: string
+  spec_name: string
+  rank: number
+  choice_count: number
+  assignment_status?: 'roster' | 'fill'
+}
 export type AdminPlayer = Submission & {
   id: string
   discord_name: string
