@@ -5,9 +5,23 @@ export const apiConfigured = Boolean(API_URL)
 
 async function request<T>(action: string, payload: Record<string, unknown> = {}): Promise<T> {
   if (!API_URL) throw new Error('The Google Apps Script URL has not been configured.')
+  const url = new URL(API_URL)
+  url.searchParams.set('_request', `${Date.now()}-${crypto.randomUUID()}`)
   const body = new URLSearchParams({ action, payload: JSON.stringify(payload) })
-  const response = await fetch(API_URL, { method: 'POST', body })
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), 20_000)
+  let response: Response
+  try {
+    response = await fetch(url, { method: 'POST', body, cache: 'no-store', signal: controller.signal })
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') throw new Error('The roster service timed out. Try again.')
+    throw error
+  } finally {
+    window.clearTimeout(timeout)
+  }
   if (!response.ok) throw new Error(`Request failed (${response.status})`)
+  const contentType = response.headers.get('content-type') || ''
+  if (!contentType.includes('application/json')) throw new Error('The roster service returned an invalid response.')
   const result = await response.json()
   if (!result.ok) throw new Error(result.error || 'The request failed.')
   return result.data as T
@@ -39,7 +53,11 @@ export const rosterApi = {
     guild_goal: string
     additional_comments: string
   }) => request<{ updated: boolean }>('submit', submission),
-  breakdown: () => request<PublicRow[]>('breakdown'),
+  breakdown: async () => {
+    const rows = await request<PublicRow[]>('breakdown')
+    if (!Array.isArray(rows)) throw new Error('The roster service returned invalid breakdown data.')
+    return rows
+  },
   adminRoster: (admin_secret: string) => request<AdminPlayer[]>('adminRoster', { admin_secret }),
   saveAssignment: async (admin_secret: string, player: AdminPlayer) => {
     const isFill = (player.status as string) === 'fill' || (player.status as string) === 'bench'

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { RefreshCw, Users } from 'lucide-react'
 import { apiConfigured, rosterApi, type PublicRow as Row } from '../lib/api'
 import { CAPABILITY_GROUPS, CLASS_COLORS, CLASS_SPECS, getRole, type Role } from '../lib/gameData'
@@ -23,9 +23,11 @@ export function Breakdown({ rowsOverride, mode = 'public' }: { rowsOverride?: Ro
   const [loading, setLoading] = useState(false)
   const [roleFilter, setRoleFilter] = useState<Role | 'All'>('All')
   const [updatedAt, setUpdatedAt] = useState<Date | null>(() => rowsOverride ? null : cached.updatedAt)
+  const loadInFlight = useRef(false)
 
   const load = useCallback(async () => {
-    if (!apiConfigured) return
+    if (!apiConfigured || loadInFlight.current) return
+    loadInFlight.current = true
     setLoading(true)
     try {
       const freshRows = await rosterApi.breakdown()
@@ -37,6 +39,7 @@ export function Breakdown({ rowsOverride, mode = 'public' }: { rowsOverride?: Ro
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Could not load responses.')
     } finally {
+      loadInFlight.current = false
       setLoading(false)
     }
   }, [])
@@ -44,7 +47,7 @@ export function Breakdown({ rowsOverride, mode = 'public' }: { rowsOverride?: Ro
   useEffect(() => {
     if (rowsOverride) return
     load()
-    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') load() }, 15_000)
+    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') load() }, 60_000)
     const onVisible = () => { if (document.visibilityState === 'visible') load() }
     const onSubmission = () => load()
     document.addEventListener('visibilitychange', onVisible)
@@ -53,7 +56,7 @@ export function Breakdown({ rowsOverride, mode = 'public' }: { rowsOverride?: Ro
     return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('roster-submitted', onSubmission); window.removeEventListener('roster-assignment-saved', onSubmission) }
   }, [load, rowsOverride])
 
-  const dataRows = rowsOverride ?? rows
+  const dataRows: Row[] = Array.isArray(rowsOverride) ? rowsOverride : Array.isArray(rows) ? rows : []
   const assignmentRows = dataRows.filter(row => row.assignment_status)
   const showsPublicPlan = mode === 'public' && assignmentRows.length > 0
   const compositionRows = showsPublicPlan
@@ -106,7 +109,7 @@ export function Breakdown({ rowsOverride, mode = 'public' }: { rowsOverride?: Ro
           return <button key={item.role} onClick={() => setRoleFilter(roleFilter === item.role ? 'All' : item.role)} className={`rounded-xl border p-4 text-left transition ${roleFilter === item.role ? 'border-amber-400 bg-amber-500/10' : 'border-stone-700 bg-black/20 hover:border-stone-500'}`}><div className="flex items-end justify-between"><span className="text-3xl font-black">{item.count}</span><span className="text-sm text-stone-500">{share}%</span></div><div className="text-xs uppercase tracking-wide text-stone-400">{item.role} {showsPublicPlan ? 'assigned' : 'mains'}</div><div className="mt-2 h-1.5 overflow-hidden rounded bg-stone-800"><div className="h-full bg-amber-400" style={{ width: `${share}%` }} /></div></button>
         })}
       </div>
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-stone-500"><span>Click a role to filter{mode === 'public' ? ' · auto-refreshes every 15 seconds' : ''}</span>{mode === 'public' && <span>{updatedAt ? `Updated ${updatedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}` : 'Waiting for roster data'}</span>}</div>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-stone-500"><span>Click a role to filter{mode === 'public' ? ' · auto-refreshes every minute' : ''}</span>{mode === 'public' && <span>{updatedAt ? `Updated ${updatedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}` : 'Waiting for roster data'}</span>}</div>
       {assignmentRows.length > 0 && <div className="mt-5 rounded-xl border border-stone-700 bg-stone-950/45 p-4">
         <div className="flex flex-wrap items-end justify-between gap-2"><div><p className="text-xs font-black uppercase tracking-wider text-amber-300">Current raid plan</p><h3 className="mt-1 text-lg font-black">Roster spots vs fills</h3></div><div className="flex gap-2 text-xs font-black"><span className="rounded-full bg-emerald-950 px-2.5 py-1 text-emerald-300">{assignmentCount('roster')} roster</span><span className="rounded-full bg-sky-950 px-2.5 py-1 text-sky-300">{assignmentCount('fill')} fill</span></div></div>
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{ROLES.map(role => <div key={role} className="rounded-lg border border-stone-800 bg-black/20 p-3"><div className="text-xs font-bold uppercase tracking-wide text-stone-500">{role}</div><div className="mt-2 flex items-baseline gap-3"><span className="text-lg font-black text-emerald-300">{assignmentCount('roster', role)} <small className="text-[10px] font-normal text-stone-500">roster</small></span><span className="text-sm font-black text-sky-300">{assignmentCount('fill', role)} <small className="text-[10px] font-normal text-stone-500">fill</small></span></div></div>)}</div>
