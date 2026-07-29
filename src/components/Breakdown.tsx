@@ -110,6 +110,19 @@ export function Breakdown({ rowsOverride, mode = 'public' }: { rowsOverride?: Ro
       {assignmentRows.length > 0 && <div className="mt-5 rounded-xl border border-stone-700 bg-stone-950/45 p-4">
         <div className="flex flex-wrap items-end justify-between gap-2"><div><p className="text-xs font-black uppercase tracking-wider text-amber-300">Current raid plan</p><h3 className="mt-1 text-lg font-black">Roster spots vs fills</h3></div><div className="flex gap-2 text-xs font-black"><span className="rounded-full bg-emerald-950 px-2.5 py-1 text-emerald-300">{assignmentCount('roster')} roster</span><span className="rounded-full bg-sky-950 px-2.5 py-1 text-sky-300">{assignmentCount('fill')} fill</span></div></div>
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{ROLES.map(role => <div key={role} className="rounded-lg border border-stone-800 bg-black/20 p-3"><div className="text-xs font-bold uppercase tracking-wide text-stone-500">{role}</div><div className="mt-2 flex items-baseline gap-3"><span className="text-lg font-black text-emerald-300">{assignmentCount('roster', role)} <small className="text-[10px] font-normal text-stone-500">roster</small></span><span className="text-sm font-black text-sky-300">{assignmentCount('fill', role)} <small className="text-[10px] font-normal text-stone-500">fill</small></span></div></div>)}</div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{ROLES.map(role => {
+          const roleAssignments = assignmentRows
+            .filter(row => getRole({ class_name: row.class_name, spec_name: row.spec_name }) === role)
+            .sort((a, b) => Number(b.choice_count) - Number(a.choice_count) || (a.assignment_status === b.assignment_status ? a.class_name.localeCompare(b.class_name) || a.spec_name.localeCompare(b.spec_name) : a.assignment_status === 'roster' ? -1 : 1))
+          return <section key={role} className="overflow-hidden rounded-xl border border-stone-700 bg-black/20">
+            <header className="flex items-center justify-between border-b border-stone-800 px-4 py-3"><h4 className="font-black">{role}{role === 'Melee' || role === 'Ranged' ? ' DPS' : 's'}</h4><span className="rounded-full bg-stone-800 px-2 py-0.5 text-xs font-black">{roleAssignments.reduce((sum, row) => sum + Number(row.choice_count), 0)}</span></header>
+            <div className="grid grid-cols-[1fr_auto] gap-3 border-b border-stone-800 bg-stone-950/50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-stone-500"><span>Assignment</span><span>Count</span></div>
+            <div className="divide-y divide-stone-800">{roleAssignments.map(row => <div key={`${row.class_name}-${row.spec_name}-${row.assignment_status}`} className="flex items-center justify-between gap-3 px-4 py-3">
+              <div className="flex min-w-0 items-center gap-2"><span className="font-bold" style={{ color: CLASS_COLORS[row.class_name] }}>{row.spec_name} {row.class_name}</span>{row.assignment_status === 'fill' && <span className="rounded bg-sky-950 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-sky-300">Fill</span>}</div>
+              <span className="min-w-8 text-right text-base font-black text-stone-100">{row.choice_count}</span>
+            </div>)}{!roleAssignments.length && <div className="px-4 py-5 text-center text-sm text-stone-600">No assignments</div>}</div>
+          </section>
+        })}</div>
       </div>}
     </div>
 
